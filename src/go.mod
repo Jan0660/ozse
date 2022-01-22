@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/mmcdole/gofeed v1.1.3
+	github.com/n0madic/twitter-scraper v0.0.0-20220124081915-396358bd501b
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/vartanbeno/go-reddit/v2 v2.0.1
 	go.mongodb.org/mongo-driver v1.8.0
@@ -25,7 +26,6 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
@@ -42,10 +42,10 @@ require (
 	github.com/xdg-go/stringprep v1.0.2 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f // indirect
-	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )

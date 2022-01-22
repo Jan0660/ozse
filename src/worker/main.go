@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/google/go-github/github"
 	"github.com/mmcdole/gofeed"
+	twitter "github.com/n0madic/twitter-scraper"
 	"github.com/vartanbeno/go-reddit/v2/reddit"
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
@@ -29,6 +30,7 @@ var redditClient *reddit.Client
 var githubClient *github.Client
 var pubdevClient *pubdev.Client
 var npmClient *npm.Client
+var twitterScraper *twitter.Scraper
 
 func main() {
 	{
@@ -58,6 +60,8 @@ func main() {
 
 		pubdevClient = pubdev.DefaultClient()
 		npmClient = npm.DefaultClient()
+		twitterScraper = twitter.New()
+		twitterScraper.WithDelay(1)
 	}
 
 	log.Println("sus")
@@ -328,6 +332,32 @@ func main() {
 						lastVersion = reversed[0].Version
 					}
 					jobDataPropertyUpdate(task.JobId, "lastVersion", lastVersion)
+
+					doneResults(results)
+				}
+			case "twitter":
+				{
+					log.Println("twitter")
+					job := getJob(task.JobId)
+
+					lastId := job.Data["lastId"].(string)
+
+					results := make([]interface{}, 40)
+					twitterScraper.SetSearchMode(twitter.SearchLatest)
+					items, _, _ := twitterScraper.FetchTweets(job.Data["name"].(string), 40, "")
+					for i, item := range items {
+						if item.ID == lastId {
+							results = results[:i]
+							break
+						}
+						result := make(map[string]interface{})
+
+						result["tweet"] = item
+
+						results[i] = result
+					}
+					lastId = items[0].ID
+					jobDataPropertyUpdate(task.JobId, "lastId", lastId)
 
 					doneResults(results)
 				}
