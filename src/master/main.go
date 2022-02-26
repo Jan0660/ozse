@@ -16,6 +16,7 @@ import (
 type Config struct {
 	MongoUrl     string `yaml:"mongoUrl"`
 	DatabaseName string `yaml:"databaseName"`
+	Address      string `yaml:"address"`
 }
 
 var jobsCol *mongo.Collection
@@ -209,7 +210,7 @@ func main() {
 		log.Println("job tickers started")
 	}()
 
-	r.Run()
+	r.Run(config.Address)
 }
 
 func getJob(id string) *shared.Job {
