@@ -28,8 +28,16 @@ func dedupRun() bool {
 			switch potentialDupe.Name {
 			case "gelbooru":
 				return true
+			case "github":
+				return potentialDupe.Data["owner"] == job.Data["owner"] && potentialDupe.Data["repo"] == job.Data["repo"]
+			case "npm":
+				return potentialDupe.Data["name"] == job.Data["name"]
+			case "pubdev":
+				return potentialDupe.Data["name"] == job.Data["name"]
 			case "reddit":
 				return potentialDupe.Data["url"] == job.Data["url"]
+			case "twitter":
+				return potentialDupe.Data["name"] == job.Data["name"]
 			}
 			return false
 		})
