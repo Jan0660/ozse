@@ -190,6 +190,10 @@ func main() {
 		var results []shared.Result
 		cursor.All(context.Background(), &results)
 
+		if results == nil {
+			results = make([]shared.Result, 0)
+		}
+
 		c.JSON(200, &results)
 	})
 	r.DELETE("/results/:id", func(c *gin.Context) {
