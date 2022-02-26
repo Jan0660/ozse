@@ -3,9 +3,11 @@ module ozse
 go 1.17
 
 require (
+	github.com/IvanMalison/bcast v0.0.0-20150922130259-f4ed6a315fa6
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/gorilla/websocket v1.5.0
 	github.com/mmcdole/gofeed v1.1.3
 	github.com/n0madic/twitter-scraper v0.0.0-20220124081915-396358bd501b
 	github.com/oklog/ulid/v2 v2.0.2
@@ -48,4 +50,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/fatih/set.v0 v0.2.1 // indirect
 )

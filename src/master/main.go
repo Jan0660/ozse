@@ -1,8 +1,10 @@
 package main
 
 import (
+	"container/list"
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,6 +24,9 @@ type Config struct {
 var jobsCol *mongo.Collection
 var tasksCol *mongo.Collection
 var resultsCol *mongo.Collection
+
+var upgrader = websocket.Upgrader{}
+var newResultList = list.New()
 
 func main() {
 	bytes, err := ioutil.ReadFile("./config.yaml")
@@ -53,6 +58,7 @@ func main() {
 	resultsCol = database.Collection("results")
 
 	r := gin.Default()
+	r.GET("/ws", wsHandler)
 	r.POST("/jobs/new", func(c *gin.Context) {
 		var job shared.Job
 		err := c.BindJSON(&job)
@@ -147,6 +153,10 @@ func main() {
 						JobId:   j,
 						JobName: task.Name,
 						Data:    result,
+					}
+
+					for e := newResultList.Front(); e != nil; e = e.Next() {
+						e.Value.(chan shared.Result) <- results[i]
 					}
 				}
 				documents := make([]interface{}, len(results))
@@ -245,4 +255,44 @@ func AddTask(job *shared.Job, firstRun bool) {
 		FirstRun: firstRun,
 	})
 	log.Println(job.Name, "task added!")
+}
+
+func wsHandler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("WebSocket upgrade failed", err)
+		return
+	}
+
+	newResultChan := make(chan shared.Result)
+	newResultList.PushFront(newResultChan)
+
+	defer func() {
+		conn.Close()
+	}()
+
+	type Packet struct {
+		Type string      `json:"type"`
+		Data interface{} `json:"data"`
+	}
+	var packet Packet
+
+	go func() {
+		for {
+			o := <-newResultChan
+			conn.WriteJSON(Packet{
+				Type: "new-result",
+				Data: o,
+			})
+		}
+	}()
+
+	for {
+		err = conn.ReadJSON(&packet)
+		conn.ReadMessage()
+		if err != nil {
+			return
+		}
+		log.Println("ws", packet)
+	}
 }
