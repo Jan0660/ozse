@@ -31,3 +31,19 @@ type Result struct {
 	JobName string                 `json:"jobName"`
 	Data    map[string]interface{} `json:"data"`
 }
+
+type Packet struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
+}
+
+type WorkerEvent struct {
+	Type WorkerEventType `json:"type"`
+	Data interface{}     `json:"data"`
+}
+
+type WorkerEventType uint8
+
+const (
+	NewTask WorkerEventType = iota
+)

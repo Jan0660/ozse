@@ -26,7 +26,9 @@ var tasksCol *mongo.Collection
 var resultsCol *mongo.Collection
 
 var upgrader = websocket.Upgrader{}
-var newResultList = list.New()
+
+var newResultChanList = list.New()
+var workerEventChanList = list.New()
 
 func main() {
 	bytes, err := ioutil.ReadFile("./config.yaml")
@@ -59,6 +61,7 @@ func main() {
 
 	r := gin.Default()
 	r.GET("/ws", wsHandler)
+	r.GET("/worker/ws", workerWsHandler)
 	r.POST("/jobs/new", func(c *gin.Context) {
 		var job shared.Job
 		err := c.BindJSON(&job)
@@ -105,6 +108,15 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
+		c.Status(200)
+	})
+	r.POST("/jobs/:jobId/taskadd", func(c *gin.Context) {
+		job := getJob(c.Param("jobId"))
+		if job.Id == "" {
+			c.String(404, "Job not found")
+			return
+		}
+		AddTask(job, false)
 		c.Status(200)
 	})
 	r.GET("/tasks", func(c *gin.Context) {
@@ -155,7 +167,7 @@ func main() {
 						Data:    result,
 					}
 
-					for e := newResultList.Front(); e != nil; e = e.Next() {
+					for e := newResultChanList.Front(); e != nil; e = e.Next() {
 						e.Value.(chan shared.Result) <- results[i]
 					}
 				}
@@ -252,12 +264,21 @@ func AddTask(job *shared.Job, firstRun bool) {
 			return
 		}
 	}
-	tasksCol.InsertOne(context.Background(), &shared.Task{
+	task := &shared.Task{
 		Name:     job.Name,
 		JobId:    job.Id,
 		Id:       shared.NewUlid().String(),
 		FirstRun: firstRun,
-	})
+	}
+	tasksCol.InsertOne(context.Background(), task)
+	go func() {
+		for e := workerEventChanList.Front(); e != nil; e = e.Next() {
+			e.Value.(chan shared.WorkerEvent) <- shared.WorkerEvent{
+				Type: shared.NewTask,
+				Data: task,
+			}
+		}
+	}()
 	log.Println(job.Name, "task added!")
 }
 
@@ -269,22 +290,18 @@ func wsHandler(c *gin.Context) {
 	}
 
 	newResultChan := make(chan shared.Result)
-	newResultList.PushFront(newResultChan)
+	newResultChanList.PushFront(newResultChan)
 
 	defer func() {
 		conn.Close()
 	}()
 
-	type Packet struct {
-		Type string      `json:"type"`
-		Data interface{} `json:"data"`
-	}
-	var packet Packet
+	var packet shared.Packet
 
 	go func() {
 		for {
 			o := <-newResultChan
-			conn.WriteJSON(Packet{
+			conn.WriteJSON(shared.Packet{
 				Type: "new-result",
 				Data: o,
 			})
@@ -298,5 +315,40 @@ func wsHandler(c *gin.Context) {
 			return
 		}
 		log.Println("ws", packet)
+	}
+}
+
+func workerWsHandler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Println("Worker WebSocket upgrade failed", err)
+		return
+	}
+
+	workerEventChan := make(chan shared.WorkerEvent)
+	workerEventChanList.PushFront(workerEventChan)
+
+	defer func() {
+		conn.Close()
+	}()
+
+	var packet shared.Packet
+
+	go func() {
+		for {
+			o := <-workerEventChan
+			conn.WriteJSON(shared.Packet{
+				Type: "worker-event",
+				Data: o,
+			})
+		}
+	}()
+
+	for {
+		err = conn.ReadJSON(&packet)
+		if err != nil {
+			return
+		}
+		log.Println("worker ws", packet)
 	}
 }

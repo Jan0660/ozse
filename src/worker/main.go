@@ -1,17 +1,22 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"ozse/shared"
 	. "ozse/worker/config"
 	feeds2 "ozse/worker/feeds"
+	"strings"
 	"time"
 )
 
+var feeds map[string]interface{}
+
 func main() {
-	feeds := make(map[string]interface{})
+	feeds = make(map[string]interface{})
 	feeds["discord-webhook"] = &feeds2.DiscordWebhookFeed{}
 	feeds["gelbooru"] = &feeds2.GelbooruFeed{}
 	feeds["github"] = &feeds2.GitHubFeed{}
@@ -43,8 +48,33 @@ func main() {
 		}
 	}
 
+	conn, _, err := websocket.DefaultDialer.Dial(strings.Replace(Url("/worker/ws"), "http", "ws", 1), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		var packet shared.Packet
+		for {
+			conn.ReadJSON(&packet)
+			log.Println(packet)
+			m := packet.Data.(map[string]interface{})
+			if packet.Type == "worker-event" {
+				switch m["type"] {
+				case shared.NewTask:
+					var task shared.Task
+					mapstructure.Decode(m["data"], &task)
+					log.Println(task)
+					handleTask(task)
+					break
+				}
+			}
+		}
+	}()
+
 	log.Println("sus")
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
+
 	for range ticker.C {
 		var tasks []shared.Task
 		err := GetJson("/tasks", &tasks)
@@ -52,18 +82,22 @@ func main() {
 			log.Println("Error getting /tasks", err)
 		}
 		for _, task := range tasks {
-			log.Println("Handling task", task)
-
-			f, ok := feeds[task.Name]
-			if !ok {
-				log.Println("Could not find feed", task.Name)
-				continue
-			}
-			feed := f.(feeds2.Feed)
-			err := feed.Run(&task)
-			if err != nil {
-				log.Println("Error running feed", err)
-			}
+			handleTask(task)
 		}
+	}
+}
+
+func handleTask(task shared.Task) {
+	log.Println("Handling task", task)
+
+	f, ok := feeds[task.Name]
+	if !ok {
+		log.Println("Could not find feed", task.Name)
+		return
+	}
+	feed := f.(feeds2.Feed)
+	err := feed.Run(&task)
+	if err != nil {
+		log.Println("Error running feed", err)
 	}
 }

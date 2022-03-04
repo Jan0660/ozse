@@ -2,3 +2,6 @@
 /src/worker/config.yaml
 .idea/
 .vscode/
+*.exe
+worker
+master
