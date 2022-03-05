@@ -27,7 +27,7 @@ var resultsCol *mongo.Collection
 
 var upgrader = websocket.Upgrader{}
 
-var newResultChanList = list.New()
+var userWriteChanList = list.New()
 var workerEventChanList = list.New()
 
 func main() {
@@ -62,6 +62,21 @@ func main() {
 	r := gin.Default()
 	r.GET("/ws", wsHandler)
 	r.GET("/worker/ws", workerWsHandler)
+	r.POST("/worker/jobValidated", func(c *gin.Context) {
+		var result shared.ValidateJobResult
+		err := c.BindJSON(&result)
+		if err != nil {
+			return
+		}
+		p := &shared.Packet{
+			Type: "job-validated",
+			Data: result,
+		}
+		for e := userWriteChanList.Front(); e != nil; e = e.Next() {
+			ch := e.Value.(chan *shared.Packet)
+			ch <- p
+		}
+	})
 	r.POST("/jobs/new", func(c *gin.Context) {
 		var job shared.Job
 		err := c.BindJSON(&job)
@@ -110,13 +125,28 @@ func main() {
 		}
 		c.Status(200)
 	})
-	r.POST("/jobs/:jobId/taskadd", func(c *gin.Context) {
+	r.POST("/jobs/:jobId/taskAdd", func(c *gin.Context) {
 		job := getJob(c.Param("jobId"))
 		if job.Id == "" {
 			c.String(404, "Job not found")
 			return
 		}
 		AddTask(job, false)
+		c.Status(200)
+	})
+	r.POST("/jobs/validate", func(c *gin.Context) {
+		var job shared.Job
+		err := c.BindJSON(&job)
+		if err != nil {
+			return
+		}
+		event := &shared.WorkerEvent{
+			Type: shared.ValidateJob,
+			Data: job,
+		}
+		for e := workerEventChanList.Front(); e != nil; e = e.Next() {
+			e.Value.(chan *shared.WorkerEvent) <- event
+		}
 		c.Status(200)
 	})
 	r.GET("/tasks", func(c *gin.Context) {
@@ -167,8 +197,12 @@ func main() {
 						Data:    result,
 					}
 
-					for e := newResultChanList.Front(); e != nil; e = e.Next() {
-						e.Value.(chan shared.Result) <- results[i]
+					packet := &shared.Packet{
+						Type: "new-result",
+						Data: results[i],
+					}
+					for e := userWriteChanList.Front(); e != nil; e = e.Next() {
+						e.Value.(chan *shared.Packet) <- packet
 					}
 				}
 				documents := make([]interface{}, len(results))
@@ -272,11 +306,12 @@ func AddTask(job *shared.Job, firstRun bool) {
 	}
 	tasksCol.InsertOne(context.Background(), task)
 	go func() {
+		event := &shared.WorkerEvent{
+			Type: shared.NewTask,
+			Data: task,
+		}
 		for e := workerEventChanList.Front(); e != nil; e = e.Next() {
-			e.Value.(chan shared.WorkerEvent) <- shared.WorkerEvent{
-				Type: shared.NewTask,
-				Data: task,
-			}
+			e.Value.(chan *shared.WorkerEvent) <- event
 		}
 	}()
 	log.Println(job.Name, "task added!")
@@ -289,8 +324,8 @@ func wsHandler(c *gin.Context) {
 		return
 	}
 
-	newResultChan := make(chan shared.Result)
-	newResultChanList.PushFront(newResultChan)
+	packetWriteChan := make(chan *shared.Packet)
+	userWriteChanList.PushFront(packetWriteChan)
 
 	defer func() {
 		conn.Close()
@@ -300,11 +335,8 @@ func wsHandler(c *gin.Context) {
 
 	go func() {
 		for {
-			o := <-newResultChan
-			conn.WriteJSON(shared.Packet{
-				Type: "new-result",
-				Data: o,
-			})
+			o := <-packetWriteChan
+			conn.WriteJSON(o)
 		}
 	}()
 
@@ -325,7 +357,7 @@ func workerWsHandler(c *gin.Context) {
 		return
 	}
 
-	workerEventChan := make(chan shared.WorkerEvent)
+	workerEventChan := make(chan *shared.WorkerEvent)
 	workerEventChanList.PushFront(workerEventChan)
 
 	defer func() {

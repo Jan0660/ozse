@@ -14,6 +14,11 @@ type Feed interface {
 	Run(task *shared.Task) error
 }
 
+type ValidatableFeed interface {
+	Feed
+	Validate(job *shared.Job) error
+}
+
 func jobDataPropertyUpdate(jobId string, property string, value interface{}) {
 	h := make(map[string]interface{})
 	h[property] = value

@@ -46,4 +46,11 @@ type WorkerEventType uint8
 
 const (
 	NewTask WorkerEventType = iota
+	ValidateJob
 )
+
+type ValidateJobResult struct {
+	Valid bool        `json:"valid"`
+	Error interface{} `json:"error"`
+	Job   Job         `json:"job"`
+}

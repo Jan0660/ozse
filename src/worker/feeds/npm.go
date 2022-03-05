@@ -67,3 +67,8 @@ func (nf *NpmFeed) Run(task *shared.Task) error {
 	doneResults(task.Id, results)
 	return nil
 }
+
+func (nf *NpmFeed) Validate(job *shared.Job) error {
+	_, err := nf.client.GetPackageMetadata(job.Data["name"].(string))
+	return err
+}

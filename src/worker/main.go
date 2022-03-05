@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"ozse/shared"
 	. "ozse/worker/config"
 	feeds2 "ozse/worker/feeds"
@@ -34,6 +38,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		_, ok = val.(feeds2.ValidatableFeed)
+		log.Println("Initialized feed", i, "validatable:", ok)
 		feeds[i] = v
 	}
 
@@ -60,12 +66,19 @@ func main() {
 			log.Println(packet)
 			m := packet.Data.(map[string]interface{})
 			if packet.Type == "worker-event" {
-				switch m["type"] {
+				switch shared.WorkerEventType(uint8(m["type"].(float64))) {
 				case shared.NewTask:
 					var task shared.Task
 					mapstructure.Decode(m["data"], &task)
 					log.Println(task)
 					handleTask(task)
+					break
+				case shared.ValidateJob:
+					var job shared.Job
+					mapstructure.Decode(m["data"], &job)
+					job.Id = m["data"].(map[string]interface{})["_id"].(string)
+					log.Println(job)
+					handleValidateJob(job)
 					break
 				}
 			}
@@ -88,6 +101,11 @@ func main() {
 }
 
 func handleTask(task shared.Task) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("handleTask panic:", r)
+		}
+	}()
 	log.Println("Handling task", task)
 
 	f, ok := feeds[task.Name]
@@ -100,4 +118,31 @@ func handleTask(task shared.Task) {
 	if err != nil {
 		log.Println("Error running feed", err)
 	}
+}
+
+func handleValidateJob(job shared.Job) {
+	log.Println("Handling validate job", job)
+
+	f, ok := feeds[job.Name]
+	if !ok {
+		log.Println("Could not find feed", job.Name)
+		return
+	}
+	feed, ok := f.(feeds2.ValidatableFeed)
+	if ok == false {
+		log.Println("Feed is not validatable")
+		return
+	}
+	err := feed.Validate(&job)
+	var errorStr interface{} = nil
+	if err != nil {
+		errorStr = err.Error()
+	}
+	obj := shared.ValidateJobResult{
+		Valid: err == nil,
+		Error: errorStr,
+		Job:   job,
+	}
+	body, _ := json.Marshal(&obj)
+	http.Post(Url("/worker/jobValidated"), "application/json", bytes.NewBuffer(body))
 }
