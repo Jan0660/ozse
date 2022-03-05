@@ -76,3 +76,8 @@ func (gf *GitHubFeed) Run(task *shared.Task) error {
 	doneResults(task.Id, results)
 	return nil
 }
+
+func (gf *GitHubFeed) Validate(job *shared.Job) error {
+	_, _, err := gf.client.Repositories.Get(context.Background(), job.Data["owner"].(string), job.Data["repo"].(string))
+	return err
+}
