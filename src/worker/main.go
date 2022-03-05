@@ -20,6 +20,17 @@ import (
 var feeds map[string]interface{}
 
 func main() {
+	{
+		filesBytes, err := ioutil.ReadFile("./config.yaml")
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = yaml.Unmarshal(filesBytes, &Config)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	feeds = make(map[string]interface{})
 	feeds["discord-webhook"] = &feeds2.DiscordWebhookFeed{}
 	feeds["gelbooru"] = &feeds2.GelbooruFeed{}
@@ -41,17 +52,6 @@ func main() {
 		_, ok = val.(feeds2.ValidatableFeed)
 		log.Println("Initialized feed", i, "validatable:", ok)
 		feeds[i] = v
-	}
-
-	{
-		filesBytes, err := ioutil.ReadFile("./config.yaml")
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = yaml.Unmarshal(filesBytes, &Config)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	conn, _, err := websocket.DefaultDialer.Dial(strings.Replace(Url("/worker/ws"), "http", "ws", 1), nil)

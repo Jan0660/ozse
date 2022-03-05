@@ -13,11 +13,10 @@ type GitHubFeed struct {
 }
 
 func (gf *GitHubFeed) Init() error {
-	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: Config.GitHubAccessToken},
 	)
-	tc := oauth2.NewClient(ctx, ts)
+	tc := oauth2.NewClient(context.Background(), ts)
 	gf.client = github.NewClient(tc)
 	// todo: check if token is valid
 	return nil
