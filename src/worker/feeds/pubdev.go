@@ -53,3 +53,8 @@ func (pdf *PubDevFeed) Run(task *shared.Task) error {
 	doneResults(task.Id, results)
 	return nil
 }
+
+func (pdf *PubDevFeed) Validate(job *shared.Job) error {
+	_, err := pdf.client.GetPackage(job.Data["name"].(string))
+	return err
+}

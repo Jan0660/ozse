@@ -2,6 +2,7 @@ package pubdev
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -25,6 +26,9 @@ func (c *Client) GetPackage(name string) (*Package, error) {
 	resp, err := c.http.Get("https://pub.dev/api/packages/" + name)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, errors.New(resp.Status)
 	}
 	var pkg Package
 	err = json.NewDecoder(resp.Body).Decode(&pkg)
