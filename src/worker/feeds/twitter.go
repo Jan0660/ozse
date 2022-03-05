@@ -40,3 +40,8 @@ func (tf *TwitterFeed) Run(task *shared.Task) error {
 	doneResults(task.Id, results)
 	return nil
 }
+
+func (tf *TwitterFeed) Validate(job *shared.Job) error {
+	_, err := tf.scraper.GetUserIDByScreenName(job.Data["name"].(string))
+	return err
+}
