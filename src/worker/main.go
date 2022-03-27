@@ -39,6 +39,7 @@ func main() {
 	feeds["pubdev"] = &feeds2.PubDevFeed{}
 	feeds["reddit"] = &feeds2.RedditFeed{}
 	feeds["twitter"] = &feeds2.TwitterFeed{}
+	feeds["youtube"] = &feeds2.YouTubeFeed{}
 
 	for i, val := range feeds {
 		v, ok := val.(feeds2.Feed)
@@ -54,10 +55,13 @@ func main() {
 		feeds[i] = v
 	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(strings.Replace(Url("/worker/ws"), "http", "ws", 1), nil)
-	if err != nil {
-		log.Fatal(err)
+	var conn *websocket.Conn
+	var err error
+	for conn, _, err = websocket.DefaultDialer.Dial(strings.Replace(Url("/worker/ws"), "http", "ws", 1), nil); err != nil; {
+		log.Println("Could not connect to ws:", err)
+		time.Sleep(time.Second * 2)
 	}
+	log.Println("Connected to ws")
 
 	go func() {
 		var packet shared.Packet
