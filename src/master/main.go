@@ -342,11 +342,16 @@ func wsHandler(c *gin.Context) {
 
 	for {
 		err = conn.ReadJSON(&packet)
-		conn.ReadMessage()
 		if err != nil {
 			return
 		}
 		log.Println("ws", packet)
+		switch packet.Type {
+		case "ping":
+			packet.Type = "pong"
+			conn.WriteJSON(packet)
+			break
+		}
 	}
 }
 
@@ -382,5 +387,11 @@ func workerWsHandler(c *gin.Context) {
 			return
 		}
 		log.Println("worker ws", packet)
+		switch packet.Type {
+		case "ping":
+			packet.Type = "pong"
+			conn.WriteJSON(packet)
+			break
+		}
 	}
 }
