@@ -25,10 +25,16 @@ func (yf *YouTubeFeed) Run(task *shared.Task) error {
 	lastId := job.Data["lastId"].(string)
 
 	results := make([]interface{}, 10)
-	// todo(perf): save channelId to job data for next time
-	channelId, err := getChannelId(yf.Service, job.Data["name"].(string))
-	if err != nil {
-		return err
+	var channelId string
+	if job.Data["channelId"] != nil {
+		channelId = job.Data["channelId"].(string)
+	} else {
+		id, err := getChannelId(yf.Service, job.Data["name"].(string))
+		if err != nil {
+			return err
+		}
+		jobDataPropertyUpdate(task.JobId, "channelId", id)
+		channelId = id
 	}
 	// todo: option to add snippet part
 	call := yf.Service.Search.List([]string{"id"}).Type("video").ChannelId(channelId).Order("date")
@@ -56,8 +62,12 @@ func (yf *YouTubeFeed) Run(task *shared.Task) error {
 }
 
 func (yf *YouTubeFeed) Validate(job *shared.Job) error {
-	_, err := getChannelId(yf.Service, job.Data["name"].(string))
-	return err
+	id, err := getChannelId(yf.Service, job.Data["name"].(string))
+	if err != nil {
+		return err
+	}
+	jobDataPropertyUpdate(job.Id, "channelId", id)
+	return nil
 }
 
 func getChannelId(service *youtube.Service, q string) (string, error) {
