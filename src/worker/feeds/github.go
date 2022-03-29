@@ -2,8 +2,10 @@ package feeds
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
+	"log"
 	"ozse/shared"
 	. "ozse/worker/config"
 )
@@ -18,7 +20,10 @@ func (gf *GitHubFeed) Init() error {
 	)
 	tc := oauth2.NewClient(context.Background(), ts)
 	gf.client = github.NewClient(tc)
-	// todo: check if token is valid
+	r, _, _ := gf.client.RateLimits(context.TODO())
+	if r.Core.Limit < 5000 {
+		log.Println(fmt.Sprint("GitHub API rate limit is low(", r.Core.Limit, "/h), not authorized?"))
+	}
 	return nil
 }
 
