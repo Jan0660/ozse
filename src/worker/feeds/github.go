@@ -20,7 +20,10 @@ func (gf *GitHubFeed) Init() error {
 	)
 	tc := oauth2.NewClient(context.Background(), ts)
 	gf.client = github.NewClient(tc)
-	r, _, _ := gf.client.RateLimits(context.TODO())
+	r, _, err := gf.client.RateLimits(context.TODO())
+	if err != nil {
+		return err
+	}
 	if r.Core.Limit < 5000 {
 		log.Println(fmt.Sprint("GitHub API rate limit is low(", r.Core.Limit, "/h), not authorized?"))
 	}
