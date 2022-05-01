@@ -40,6 +40,7 @@ func main() {
 	feeds["reddit"] = &feeds2.RedditFeed{}
 	feeds["twitter"] = &feeds2.TwitterFeed{}
 	feeds["youtube"] = &feeds2.YouTubeFeed{}
+	feeds["twitch"] = &feeds2.TwitchFeed{}
 
 	for i, val := range feeds {
 		v, ok := val.(feeds2.Feed)
@@ -48,6 +49,7 @@ func main() {
 		}
 		err := v.Init()
 		if err != nil {
+			log.Println("error initializing feed", i)
 			log.Fatal(err)
 		}
 		_, ok = val.(feeds2.ValidatableFeed)

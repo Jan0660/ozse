@@ -47,3 +47,14 @@ func doneResults(id string, results []interface{}) {
 	body, _ := json.Marshal(&obj)
 	http.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
 }
+
+// todo(cleanup): twitch feed wasn't working for some reason and this seems to have fixed it?
+func doneResultsPtrTest(id string, results *[]interface{}) {
+	obj := struct {
+		Results *[]interface{} `json:"results"`
+	}{
+		Results: results,
+	}
+	body, _ := json.Marshal(&obj)
+	http.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
+}
