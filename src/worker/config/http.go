@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var httpClient = &http.Client{
+var HttpClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
@@ -15,7 +15,7 @@ func Url(endpoint string) string {
 }
 
 func GetJson(endpoint string, target interface{}) error {
-	r, err := http.Get(Url(endpoint))
+	r, err := HttpClient.Get(Url(endpoint))
 	if err != nil {
 		return err
 	}

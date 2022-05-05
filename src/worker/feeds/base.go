@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
-	"net/http"
 	"ozse/shared"
 	. "ozse/worker/config"
 )
@@ -23,7 +22,7 @@ func jobDataPropertyUpdate(jobId string, property string, value interface{}) {
 	h := make(map[string]interface{})
 	h[property] = value
 	body, _ := json.Marshal(&h)
-	http.Post(Url("/jobs/"+jobId+"/data/update/"), "application/json", bytes.NewBuffer(body))
+	HttpClient.Post(Url("/jobs/"+jobId+"/data/update/"), "application/json", bytes.NewBuffer(body))
 }
 
 func getJob(id string) *shared.Job {
@@ -35,7 +34,7 @@ func getJob(id string) *shared.Job {
 	return &job
 }
 func done(id string) {
-	http.Post(Url("/tasks/done/"+id), "application/json", nil)
+	HttpClient.Post(Url("/tasks/done/"+id), "application/json", nil)
 }
 
 func doneResults(id string, results []interface{}) {
@@ -45,7 +44,7 @@ func doneResults(id string, results []interface{}) {
 		Results: results,
 	}
 	body, _ := json.Marshal(&obj)
-	http.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
+	HttpClient.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
 }
 
 // todo(cleanup): twitch feed wasn't working for some reason and this seems to have fixed it?
@@ -56,5 +55,5 @@ func doneResultsPtrTest(id string, results *[]interface{}) {
 		Results: results,
 	}
 	body, _ := json.Marshal(&obj)
-	http.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
+	HttpClient.Post(Url("/tasks/done/"+id), "application/json", bytes.NewBuffer(body))
 }

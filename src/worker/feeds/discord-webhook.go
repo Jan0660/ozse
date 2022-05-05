@@ -3,8 +3,8 @@ package feeds
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
 	"ozse/shared"
+	. "ozse/worker/config"
 )
 
 type DiscordWebhookFeed struct{}
@@ -20,7 +20,7 @@ func (dwf *DiscordWebhookFeed) Run(task *shared.Task) error {
 	}{
 		Content: job.Data["content"].(string),
 	})
-	_, err := http.Post(job.Data["url"].(string), "application/json", bytes.NewBuffer(jsonBytes))
+	_, err := HttpClient.Post(job.Data["url"].(string), "application/json", bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		return err
 	}
