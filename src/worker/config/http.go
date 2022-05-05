@@ -3,14 +3,18 @@ package config
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
+
+var httpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
 
 func Url(endpoint string) string {
 	return Config.MasterUrl + endpoint
 }
 
 func GetJson(endpoint string, target interface{}) error {
-	// todo: use a http client with a timeout
 	r, err := http.Get(Url(endpoint))
 	if err != nil {
 		return err
