@@ -16,10 +16,13 @@ import (
 )
 
 type Config struct {
-	MongoUrl     string `yaml:"mongoUrl"`
-	DatabaseName string `yaml:"databaseName"`
-	Address      string `yaml:"address"`
+	MongoUrl            string `yaml:"mongoUrl"`
+	DatabaseName        string `yaml:"databaseName"`
+	Address             string `yaml:"address"`
+	EnableLastAddedWait bool   `yaml:"enableLastAddedWait"`
 }
+
+var config Config
 
 var jobsCol *mongo.Collection
 var tasksCol *mongo.Collection
@@ -35,7 +38,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	var config Config
 	err = yaml.Unmarshal(bytes, &config)
 	if err != nil {
 		log.Fatalln(err)
@@ -281,7 +283,13 @@ func getJob(id string) *shared.Job {
 }
 
 func JobTicker(job *shared.Job, firstRun bool) {
-	// todo: something like time keeping: for an existing job, wait for the time from the last run - store last run time in db too
+	if config.EnableLastAddedWait {
+		shouldWait := job.LastAdded + int64(job.Timer) - time.Now().Unix()
+		if shouldWait > 0 {
+			println(job.Name, job.Id, job.Timer, shouldWait)
+			time.Sleep(time.Duration(shouldWait) * time.Second)
+		}
+	}
 	ticker := time.NewTicker(time.Duration(job.Timer) * time.Second)
 	AddTask(job, firstRun)
 	for range ticker.C {
@@ -291,6 +299,9 @@ func JobTicker(job *shared.Job, firstRun bool) {
 }
 
 func AddTask(job *shared.Job, firstRun bool) {
+	if config.EnableLastAddedWait {
+		go UpdateJobLastAdded(job.Id)
+	}
 	if !job.AllowTaskDuplicates {
 		count, _ := tasksCol.CountDocuments(context.Background(), bson.M{"jobid": job.Id})
 		if count != 0 {
@@ -315,6 +326,10 @@ func AddTask(job *shared.Job, firstRun bool) {
 		}
 	}()
 	log.Println(job.Name, "task added!")
+}
+
+func UpdateJobLastAdded(jobId string) {
+	jobsCol.UpdateOne(context.Background(), bson.M{"_id": jobId}, bson.M{"$set": bson.M{"lastadded": time.Now().Unix()}})
 }
 
 func wsHandler(c *gin.Context) {

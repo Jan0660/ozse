@@ -11,9 +11,11 @@ type Job struct {
 	Timer               uint32 `json:"timer"`
 	AllowTaskDuplicates bool   `json:"allowTaskDuplicates"`
 	// Data information for running the job
-	Data map[string]interface{} `json:"data"`
-
-	Duplicates []string `json:"duplicates"`
+	Data       map[string]interface{} `json:"data"`
+	Duplicates []string               `json:"duplicates"`
+	// LastAdded is the last time(Unix seconds) the job was last added or last supposed to be added.
+	// Used to keep a regular interval even between master restarts.
+	LastAdded int64 `json:"lastAdded"`
 }
 
 type Task struct {
