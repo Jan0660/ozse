@@ -18,7 +18,6 @@ func (pdf *PubDevFeed) Run(task *shared.Task) error {
 	job := getJob(task.JobId)
 
 	lastVersion := job.Data["lastVersion"].(string)
-	broke := false
 
 	pkg, err := pdf.client.GetPackage(job.Data["name"].(string))
 	if err != nil {
@@ -31,10 +30,6 @@ func (pdf *PubDevFeed) Run(task *shared.Task) error {
 		item := pkg.Versions[len(pkg.Versions)-1-i]
 		if item.Version == lastVersion {
 			results = results[:i]
-			if i != 0 {
-				lastVersion = pkg.Versions[len(pkg.Versions)-1].Version
-			}
-			broke = true
 			break
 		}
 		result := make(map[string]interface{})
@@ -45,11 +40,8 @@ func (pdf *PubDevFeed) Run(task *shared.Task) error {
 
 		results[i] = result
 	}
-	if !broke {
-		lastVersion = pkg.Versions[len(pkg.Versions)-1].Version
-	}
+	lastVersion = pkg.Versions[len(pkg.Versions)-1].Version
 	jobDataPropertyUpdate(task.JobId, "lastVersion", lastVersion)
-
 	doneResults(task.Id, results)
 	return nil
 }

@@ -69,7 +69,11 @@ func main() {
 	go func() {
 		var packet shared.Packet
 		for {
-			conn.ReadJSON(&packet)
+			err = conn.ReadJSON(&packet)
+			if err != nil {
+				log.Println("Could not read packet:", err)
+				break
+			}
 			log.Println(packet)
 			m := packet.Data.(map[string]interface{})
 			if packet.Type == "worker-event" {

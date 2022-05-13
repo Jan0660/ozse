@@ -37,7 +37,6 @@ func (gf *GitHubFeed) Run(task *shared.Task) error {
 	if !ok {
 		lastId = int64(job.Data["lastId"].(float64))
 	}
-	broke := false
 
 	releases, _, err := gf.client.Repositories.ListReleases(context.Background(), job.Data["owner"].(string), job.Data["repo"].(string), nil)
 	if err != nil {
@@ -49,10 +48,6 @@ func (gf *GitHubFeed) Run(task *shared.Task) error {
 	for i, item := range releases {
 		if *item.ID == lastId {
 			results = results[:i]
-			if i != 0 {
-				lastId = *releases[0].ID
-			}
-			broke = true
 			break
 		}
 		result := make(map[string]interface{})
@@ -76,9 +71,7 @@ func (gf *GitHubFeed) Run(task *shared.Task) error {
 
 		results[i] = result
 	}
-	if !broke {
-		lastId = *releases[0].ID
-	}
+	lastId = *releases[0].ID
 	jobDataPropertyUpdate(task.JobId, "lastId", lastId)
 
 	doneResults(task.Id, results)

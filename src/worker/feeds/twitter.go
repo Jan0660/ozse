@@ -22,7 +22,10 @@ func (tf *TwitterFeed) Run(task *shared.Task) error {
 	lastId := job.Data["lastId"].(string)
 
 	results := make([]interface{}, 40)
-	items, _, _ := tf.scraper.FetchTweets(job.Data["name"].(string), 40, "")
+	items, _, err := tf.scraper.FetchTweets(job.Data["name"].(string), 40, "")
+	if err != nil {
+		return err
+	}
 	for i, item := range items {
 		if item.ID == lastId {
 			results = results[:i]

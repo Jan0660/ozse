@@ -19,7 +19,6 @@ func (nf *NpmFeed) Run(task *shared.Task) error {
 	job := getJob(task.JobId)
 
 	lastVersion := job.Data["lastVersion"].(string)
-	broke := false
 
 	pkg, err := nf.client.GetPackageMetadata(job.Data["name"].(string))
 	if err != nil {
@@ -45,10 +44,6 @@ func (nf *NpmFeed) Run(task *shared.Task) error {
 	for i, item := range reversed {
 		if item.Version == lastVersion {
 			results = results[:i]
-			if i != 0 {
-				lastVersion = reversed[0].Version
-			}
-			broke = true
 			break
 		}
 		result := make(map[string]interface{})
@@ -59,9 +54,7 @@ func (nf *NpmFeed) Run(task *shared.Task) error {
 
 		results[i] = result
 	}
-	if !broke {
-		lastVersion = reversed[0].Version
-	}
+	lastVersion = reversed[0].Version
 	jobDataPropertyUpdate(task.JobId, "lastVersion", lastVersion)
 
 	doneResults(task.Id, results)

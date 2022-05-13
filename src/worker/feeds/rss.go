@@ -16,11 +16,17 @@ func (rf *RssFeed) Init() error {
 func (rf *RssFeed) Run(task *shared.Task) error {
 	job := getJob(task.JobId)
 	fp := gofeed.NewParser()
-	feed, _ := fp.ParseURL(job.Data["url"].(string))
+	feed, err := fp.ParseURL(job.Data["url"].(string))
+	if err != nil {
+		return err
+	}
 
 	results := make([]interface{}, len(feed.Items))
 
-	lastLink, _ := job.Data["lastLink"].(string)
+	lastLink, ok := job.Data["lastLink"].(string)
+	if ok == false {
+		lastLink = ""
+	}
 
 	for i, item := range feed.Items {
 		if item.Link == lastLink {

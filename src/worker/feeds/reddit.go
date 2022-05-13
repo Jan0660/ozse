@@ -20,20 +20,21 @@ func (rf *RedditFeed) Init() error {
 func (rf *RedditFeed) Run(task *shared.Task) error {
 	job := getJob(task.JobId)
 	fp := gofeed.NewParser()
-	feed, _ := fp.ParseURL(job.Data["url"].(string))
+	feed, err := fp.ParseURL(job.Data["url"].(string))
+	if err != nil {
+		return err
+	}
 
 	results := make([]interface{}, 25)
 
-	lastPost, _ := job.Data["lastPost"].(string)
-	broke := false
+	lastPost, ok := job.Data["lastPost"].(string)
+	if !ok {
+		lastPost = ""
+	}
 
 	for i, item := range feed.Items {
 		if item.Link == lastPost {
 			results = results[:i]
-			if i != 0 {
-				lastPost = feed.Items[0].Link
-			}
-			broke = true
 			break
 		}
 		result := make(map[string]interface{})
@@ -45,7 +46,10 @@ func (rf *RedditFeed) Run(task *shared.Task) error {
 		result["id"] = item.GUID
 
 		result["author"] = item.Author.Name
-		post, res, _ := rf.client.Post.Get(context.Background(), item.GUID[3:])
+		post, res, err := rf.client.Post.Get(context.Background(), item.GUID[3:])
+		if err != nil {
+			return err
+		}
 		result["nsfw"] = post.Post.NSFW
 		result["spoiler"] = post.Post.Spoiler
 		result["contentUrl"] = post.Post.URL
@@ -55,11 +59,8 @@ func (rf *RedditFeed) Run(task *shared.Task) error {
 
 		results[i] = result
 	}
-	if !broke {
-		lastPost = feed.Items[0].Link
-	}
+	lastPost = feed.Items[0].Link
 	jobDataPropertyUpdate(task.JobId, "lastPost", lastPost)
-
 	doneResults(task.Id, results)
 	return nil
 }
