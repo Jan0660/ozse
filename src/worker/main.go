@@ -41,6 +41,7 @@ func main() {
 	feeds["twitter"] = &feeds2.TwitterFeed{}
 	feeds["youtube"] = &feeds2.YouTubeFeed{}
 	feeds["twitch"] = &feeds2.TwitchFeed{}
+	feeds["rss"] = &feeds2.RssFeed{}
 
 	for i, val := range feeds {
 		v, ok := val.(feeds2.Feed)
