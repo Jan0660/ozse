@@ -211,7 +211,12 @@ func main() {
 				for i := range results {
 					documents[i] = results[i]
 				}
-				resultsCol.InsertMany(context.Background(), documents)
+				if len(results) != 0 {
+					_, err := resultsCol.InsertMany(context.Background(), documents)
+					if err != nil {
+						log.Fatal("Error inserting results", params.Id, err)
+					}
+				}
 			}
 		}
 
