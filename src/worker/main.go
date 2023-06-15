@@ -7,9 +7,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"ozse/shared"
 	. "ozse/worker/config"
 	feeds2 "ozse/worker/feeds"
@@ -21,7 +21,7 @@ var feeds map[string]interface{}
 
 func main() {
 	{
-		filesBytes, err := ioutil.ReadFile("./config.yaml")
+		filesBytes, err := os.ReadFile("./config.yaml")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -33,7 +33,6 @@ func main() {
 
 	feeds = make(map[string]interface{})
 	feeds["discord-webhook"] = &feeds2.DiscordWebhookFeed{}
-	feeds["gelbooru"] = &feeds2.GelbooruFeed{}
 	feeds["github"] = &feeds2.GitHubFeed{}
 	feeds["npm"] = &feeds2.NpmFeed{}
 	feeds["pubdev"] = &feeds2.PubDevFeed{}
